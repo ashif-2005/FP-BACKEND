@@ -45,12 +45,10 @@ const schema = new db.Schema(
       required: true,
     },
     transport: {
-      type: String,
-      required: true,
+      type: String
     },
     place: {
-      type: String,
-      required: true,
+      type: String
     },
     items: {
       type: Array,

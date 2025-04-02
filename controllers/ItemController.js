@@ -13,10 +13,9 @@ const getItems = async (req, res) => {
 // Add a new item
 const addItem = async (req, res) => {
   try {
-    const { id, item, hsn, type, price } = req.body;
+    const { item, hsn, type, price } = req.body;
 
     const newItem = new Item({
-      id,
       item,
       hsn,
       type,

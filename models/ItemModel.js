@@ -2,10 +2,6 @@ const db = require("mongoose");
 
 const schema = new db.Schema(
   {
-    id: {
-      type: Number,
-      required: true,
-    },
     item: {
       type: String,
       required: true,

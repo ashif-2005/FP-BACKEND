@@ -12,13 +12,10 @@ const schema = new db.Schema(
       default: Date.now,
     },
     poNumber: {
-      type: String,
-      required: true,
+      type: String
     },
     poDate: {
-      type: Date,
-      required: true,
-      default: Date.now,
+      type: Date
     },
     toCompany: {
       type: String,

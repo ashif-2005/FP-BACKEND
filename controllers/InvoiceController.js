@@ -26,6 +26,7 @@ const addInvoice = async (req, res) => {
       stateCode,
       transport,
       place,
+      transportCharge,
       items,
     } = req.body;
 
@@ -42,6 +43,7 @@ const addInvoice = async (req, res) => {
       stateCode,
       transport,
       place,
+      transportCharge,
       items,
     });
 

@@ -47,6 +47,10 @@ const schema = new db.Schema(
     place: {
       type: String
     },
+    transportCharge: {
+      type: Number,
+      default: 0
+    },
     items: {
       type: Array,
       default: [],

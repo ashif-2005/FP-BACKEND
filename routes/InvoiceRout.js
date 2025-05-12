@@ -5,9 +5,11 @@ const {
   addInvoice,
   updateInvoice,
   deleteInvoice,
+  getAllInvoices
 } = require("../controllers/InvoiceController");
 
 // Routes
+router.get("/get-all", getAllInvoices)
 router.get("/get", getInvoices);
 router.post("/add", addInvoice);
 router.put("/edit/:id", updateInvoice);

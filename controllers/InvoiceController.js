@@ -1,7 +1,7 @@
 const { Invoice } = require("../models/InvoiceModel");
 
 // Get all invoices
-const getInvoices = async (req, res) => {
+const getAllInvoices = async (req, res) => {
   try {
     const invoices = await Invoice.find();
     res.status(200).json(invoices);
@@ -9,6 +9,33 @@ const getInvoices = async (req, res) => {
     res.status(500).json({ message: "Error fetching invoices", error });
   }
 };
+
+const getInvoices = async (req, res) => {
+  try {
+    // Convert query params to numbers, set default values if not provided
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    // Get total count for metadata
+    const total = await Invoice.countDocuments();
+
+    // Fetch paginated invoices
+    const invoices = await Invoice.find().skip(skip).limit(limit);
+
+    res.status(200).json({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: invoices,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching invoices", error });
+  }
+};
+
 
 // Add a new invoice
 const addInvoice = async (req, res) => {
@@ -92,4 +119,4 @@ const deleteInvoice = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, addInvoice, updateInvoice, deleteInvoice };
+module.exports = { getAllInvoices, getInvoices, addInvoice, updateInvoice, deleteInvoice };

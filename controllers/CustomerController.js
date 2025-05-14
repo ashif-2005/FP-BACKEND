@@ -98,4 +98,4 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
-module.exports = { getCustomers, addCustomer, updateCustomer, deleteCustomer };
+module.exports = { getAllCustomers, getCustomers, addCustomer, updateCustomer, deleteCustomer };

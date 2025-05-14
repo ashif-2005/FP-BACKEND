@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {
+  getAllCustomers,
   getCustomers,
   addCustomer,
   updateCustomer,
@@ -8,7 +9,7 @@ const {
 } = require("../controllers/CustomerController");
 
 // Routes
-router.get("/get-all")
+router.get("/get-all", getAllCustomers)
 router.get("/get", getCustomers);
 router.post("/add", addCustomer);
 router.put("/edit/:id", updateCustomer);

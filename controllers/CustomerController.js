@@ -1,10 +1,37 @@
 const { Customer } = require("../models/CustomerModel");
 
 // Get all customers
-const getCustomers = async (req, res) => {
+const getAllCustomers = async (req, res) => {
   try {
     const customers = await Customer.find();
     res.status(200).json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customers", error });
+  }
+};
+
+// Get all customers in pagination
+const getCustomers = async (req, res) => {
+  try {
+    // Convert query params to numbers, set default values if not provided
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    // Get total count for metadata
+    const total = await Customer.countDocuments();
+
+    // Fetch paginated invoices
+    const customers = await Customer.find().skip(skip).limit(limit);
+
+    res.status(200).json({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: customers,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching customers", error });
   }

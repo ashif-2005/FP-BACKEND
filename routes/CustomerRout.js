@@ -8,6 +8,7 @@ const {
 } = require("../controllers/CustomerController");
 
 // Routes
+router.get("/get-all")
 router.get("/get", getCustomers);
 router.post("/add", addCustomer);
 router.put("/edit/:id", updateCustomer);

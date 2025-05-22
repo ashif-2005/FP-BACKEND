@@ -35,15 +35,14 @@ const updateItem = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    const updatedItem = await Item.findOneAndUpdate({ id }, updatedData, {
-      new: true,
-    });
+    const updatedItems = await Item.findByIdAndUpdate(id, updatedData);
+    console.log(updatedItems)
 
-    if (!updatedItem) {
+    if (!updatedItems) {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    res.status(200).json({ message: "Item updated successfully", updatedItem });
+    res.status(200).json({ message: "Item updated successfully", updatedItems});
   } catch (error) {
     res.status(500).json({ message: "Error updating item", error });
   }
@@ -53,7 +52,7 @@ const updateItem = async (req, res) => {
 const deleteItem = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedItem = await Item.findOneAndDelete({ id });
+    const deletedItem = await Item.findByIdAndDelete(id);
 
     if (!deletedItem) {
       return res.status(404).json({ message: "Item not found" });

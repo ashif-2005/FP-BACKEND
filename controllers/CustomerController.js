@@ -66,9 +66,7 @@ const updateCustomer = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    const updatedCustomer = await Customer.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+    const updatedCustomer = await Customer.findByIdAndUpdate(id, updatedData);
 
     if (!updatedCustomer) {
       return res.status(404).json({ message: "Customer not found" });

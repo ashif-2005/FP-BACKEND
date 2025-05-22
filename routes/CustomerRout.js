@@ -7,6 +7,7 @@ const {
   updateCustomer,
   deleteCustomer,
 } = require("../controllers/CustomerController");
+const checkUser = require("../middleware/auth");
 
 // Routes
 router.get("/get-all", getAllCustomers)

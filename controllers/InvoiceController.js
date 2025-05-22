@@ -87,9 +87,7 @@ const updateInvoice = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    const updatedInvoice = await Invoice.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+    const updatedInvoice = await Invoice.findByIdAndUpdate(id, updatedData);
 
     if (!updatedInvoice) {
       return res.status(404).json({ message: "Invoice not found" });

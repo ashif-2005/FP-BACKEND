@@ -36,9 +36,7 @@ const updateDC = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    const updatedDC = await DC.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+    const updatedDC = await DC.findByIdAndUpdate(id, updatedData);
 
     if (!updatedDC) {
       return res.status(404).json({ message: "DC entry not found" });

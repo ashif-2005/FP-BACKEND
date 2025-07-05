@@ -10,6 +10,17 @@ const getAllCustomers = async (req, res) => {
   }
 };
 
+// Get customer by Name
+const getCustomerByName = async (req, res) => {
+  try {
+    const { company } = req.body;
+    const customers = await Customer.findOne({name: company});
+    res.status(200).json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customers", error });
+  }
+};
+
 // Get all customers in pagination
 const getCustomers = async (req, res) => {
   try {
@@ -96,4 +107,4 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
-module.exports = { getAllCustomers, getCustomers, addCustomer, updateCustomer, deleteCustomer };
+module.exports = { getAllCustomers, getCustomerByName, getCustomers, addCustomer, updateCustomer, deleteCustomer };

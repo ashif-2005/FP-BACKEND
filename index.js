@@ -7,7 +7,11 @@ const CustomerRout = require("./routes/CustomerRout");
 const ItemRout = require("./routes/ItemRout");
 const DCRout = require("./routes/DCRout");
 const InvoiceRout = require("./routes/InvoiceRout");
-const UserRout = require('./routes/UserRout')
+const UserRout = require("./routes/UserRout");
+const VoucherRout = require("./routes/VoucherRout");
+const LogRout = require("./routes/LogRout");
+const initInvoiceStream = require('./config/InvoiceStream')
+const initVoucherStream = require('./config/VoucherStream')
 
 const app = express();
 app.use(parser.json());
@@ -15,11 +19,16 @@ app.use(cors());
 
 dotenv.config("./env");
 
-app.use("/user", UserRout)
+app.use("/user", UserRout);
 app.use("/customer", CustomerRout);
 app.use("/item", ItemRout);
 app.use("/dc", DCRout);
 app.use("/invoice", InvoiceRout);
+app.use("/voucher", VoucherRout);
+app.use("/log", LogRout);
+
+initInvoiceStream();
+initVoucherStream();
 
 app.get("/test", (req, res) => {
   try {

@@ -27,6 +27,14 @@ const schema = new db.Schema(
       type: String,
       required: true,
     },
+    op_balance: {
+      type: Number,
+      default: 0
+    },
+    balance: {
+      type: Number,
+      default: 0
+    }
   },
   {
     timestamps: true,

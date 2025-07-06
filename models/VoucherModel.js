@@ -4,34 +4,35 @@ const schema = new db.Schema(
   {
     voucherNum: {
       type: String,
-      required: true
+      required: true,
     },
     voucherDate: {
       type: Date,
       required: true,
-      default: Date.now
+      default: Date.now,
     },
     partyCompany: {
       type: String,
-      required: true
+      required: true,
     },
     paymentMode: {
       type: String,
-      enum: ["Cheque", "NEFT/RTGS", "NA"],
-      required: true
+      enum: ["Cheque", "NEFT/RTGS", "Cash", "NA"],
+      default: "NA",
+      required: true,
     },
     bank: {
       type: String,
-      default: null
+      default: null,
     },
     chequeNum: {
-        type: String,
-        default: null
+      type: String,
+      default: null,
     },
     amount: {
-        type: Number,
-        required: true
-    }
+      type: Number,
+      required: true,
+    },
   },
   {
     timestamps: true,

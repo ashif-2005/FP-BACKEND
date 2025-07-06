@@ -26,7 +26,7 @@ const schema = new db.Schema(
     },
     paymentMode: {
       type: String,
-      enum: ["Cheque", "NEFT/RTGS", "NA"],
+      enum: ["Cheque", "NEFT/RTGS", "Cash", "NA"],
       default:"NA",
     },
     bank: {

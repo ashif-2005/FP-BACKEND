@@ -16,6 +16,15 @@ const getTaxAndTotal = (inv) => {
   ).toFixed(2);
 };
 
+const adjustToNearestWhole = (amount) => {
+    const rounded = Math.round(amount);
+    const difference = (rounded - amount).toFixed(2);
+    return {
+      roundedTotal: rounded,
+      adjustment: difference > 0 ? `+${difference}` : difference,
+    };
+  }
+
 const initInvoiceStream = () => {
   const changeStream = Invoice.watch([{ $match: { operationType: "insert" } }]);
 
@@ -32,15 +41,15 @@ const initInvoiceStream = () => {
         paymentMode: "NA",
         bank: null,
         chequeNum: null,
-        amount: getTaxAndTotal(inv) || 0,
+        amount: adjustToNearestWhole(getTaxAndTotal(inv)).roundedTotal || 0,
         payment: 0,
-        balance: parseFloat(company.balance + parseFloat(getTaxAndTotal(inv))).toFixed(2),
+        balance: parseFloat(company.balance + adjustToNearestWhole(getTaxAndTotal(inv)).roundedTotal),
       };
 
       await Customer.findOneAndUpdate(
         { name: inv.toCompany },
         {
-          balance: company.balance + parseFloat(getTaxAndTotal(inv)),
+          balance: company.balance + adjustToNearestWhole(getTaxAndTotal(inv)).roundedTotal,
         }
       );
       await Log.create(logData);

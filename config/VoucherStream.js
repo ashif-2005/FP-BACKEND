@@ -39,6 +39,7 @@ const initVoucherStream = async () => {
   changeStream.on("change", async (change) => {
     if (change.operationType === "insert") {
       const voucher = change.fullDocument;
+      const company = Customer.findOne({ name: voucher.partyCompany })
       try {
         const log = {
           logNum: (await Log.countDocuments()) + 1,
@@ -51,7 +52,7 @@ const initVoucherStream = async () => {
           chequeNum: voucher.chequeNum,
           amount: 0,
           payment: voucher.amount,
-          balance: 0,
+          balance: company.op_balance,
         };
 
         await Log.create(log);

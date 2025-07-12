@@ -65,6 +65,7 @@ const initInvoiceStream = () => {
   changeStream.on("change", async (change) => {
     if (change.operationType == "insert") {
       const inv = change.fullDocument;
+      const company = Customer.findOne({ name: inv.toCompany });
       try {
         const totalAmount = adjustToNearestWhole(
           getTaxAndTotal(inv)
@@ -80,7 +81,7 @@ const initInvoiceStream = () => {
           chequeNum: null,
           amount: totalAmount,
           payment: 0,
-          balance: 0,
+          balance: company.op_balance,
         };
 
         await Log.create(log);

@@ -2,27 +2,45 @@ const { Voucher } = require("../models/VoucherModel");
 const { Log } = require("../models/LogModel");
 const { Customer } = require("../models/CustomerModel");
 
+const recalculateLogsAndBalance = async (companyName) => {
+  const allLogs = await Log.find({ partyCompany: companyName }).sort({ logDate: 1, _id: 1 });
+
+  let balance = 0;
+  const bulkOps = allLogs.map((log, index) => {
+    if (log.logType === "INVOICE") balance += log.amount;
+    else if (log.logType === "VOUCHER") balance -= log.payment;
+
+    return {
+      updateOne: {
+        filter: { _id: log._id },
+        update: {
+          $set: {
+            logNum: index + 1,
+            balance: parseFloat(balance.toFixed(2)),
+          },
+        },
+      },
+    };
+  });
+
+  if (bulkOps.length) await Log.bulkWrite(bulkOps);
+  await Customer.findOneAndUpdate({ name: companyName }, { balance });
+};
+
 const initVoucherStream = async () => {
   const changeStream = Voucher.watch(
-    [
-      { $match: { operationType: { $in: ["insert", "delete", "update"] } } }
-    ],
+    [{ $match: { operationType: { $in: ["insert", "delete", "update"] } } }],
     {
-      fullDocument: "updateLookup",               
-      fullDocumentBeforeChange: "whenAvailable"   
+      fullDocument: "updateLookup",
+      fullDocumentBeforeChange: "whenAvailable",
     }
   );
 
   changeStream.on("change", async (change) => {
-    // INSERT
     if (change.operationType === "insert") {
       const voucher = change.fullDocument;
-
       try {
-        const company = await Customer.findOne({ name: voucher.partyCompany });
-        const newBalance = company.balance - voucher.amount;
-
-        const logData = {
+        const log = {
           logNum: (await Log.countDocuments()) + 1,
           logDate: voucher.voucherDate,
           partyCompany: voucher.partyCompany || "Unknown Company",
@@ -33,88 +51,56 @@ const initVoucherStream = async () => {
           chequeNum: voucher.chequeNum,
           amount: 0,
           payment: voucher.amount,
-          balance: parseFloat(newBalance).toFixed(2),
+          balance: 0,
         };
 
-        await Customer.findOneAndUpdate(
-          { name: voucher.partyCompany },
-          { balance: newBalance }
-        );
+        await Log.create(log);
+        await recalculateLogsAndBalance(voucher.partyCompany);
 
-        await Log.create(logData);
-        console.log(`Voucher inserted: ${voucher.voucherNum}, balance updated, log created.`);
+        console.log(`Voucher inserted: ${voucher.voucherNum}, log added and balance recalculated.`);
       } catch (error) {
         console.error(`Error creating log for voucher ${voucher.voucherNum}: ${error.message}`);
       }
     }
 
-    // DELETE
     if (change.operationType === "delete") {
       const voucher = change.fullDocumentBeforeChange;
-
-      if (!voucher) {
-        console.warn("Pre-image not available for delete operation. Skipping...");
-        return;
-      }
+      if (!voucher) return console.warn("Missing pre-image for delete.");
 
       try {
-        const company = await Customer.findOne({ name: voucher.partyCompany });
-        const newBalance = company.balance + voucher.amount;
+        await Log.deleteOne({ refNum: voucher.voucherNum, logType: "VOUCHER" });
+        await recalculateLogsAndBalance(voucher.partyCompany);
 
-        await Customer.findOneAndUpdate(
-          { name: voucher.partyCompany },
-          { balance: newBalance }
-        );
-
-        await Log.deleteOne({
-          refNum: voucher.voucherNum,
-          logType: "VOUCHER"
-        });
-
-        console.log(`Voucher deleted: ${voucher.voucherNum}, balance restored, log deleted.`);
+        console.log(`Voucher deleted: ${voucher.voucherNum}, log removed and balance recalculated.`);
       } catch (error) {
-        console.error(`Error handling voucher delete for ${voucher.voucherNum}: ${error.message}`);
+        console.error(`Error deleting voucher ${voucher.voucherNum}: ${error.message}`);
       }
     }
 
-    // UPDATE
     if (change.operationType === "update") {
-      const updatedVoucher = change.fullDocument;
-      const oldVoucher = change.fullDocumentBeforeChange;
-
-      if (!oldVoucher) {
-        console.warn(`Missing pre-image for update on voucher ${updatedVoucher.voucherNum}. Skipping update.`);
-        return;
-      }
+      const updated = change.fullDocument;
+      const original = change.fullDocumentBeforeChange;
+      if (!original) return console.warn("Missing pre-image for update.");
 
       try {
-        const company = await Customer.findOne({ name: updatedVoucher.partyCompany });
-
-        const amountDifference = updatedVoucher.amount - oldVoucher.amount;
-        const newBalance = company.balance - amountDifference;
-
-        await Customer.findOneAndUpdate(
-          { name: updatedVoucher.partyCompany },
-          { balance: newBalance }
-        );
-
         await Log.findOneAndUpdate(
-          { refNum: updatedVoucher.voucherNum, logType: "VOUCHER" },
+          { refNum: updated.voucherNum, logType: "VOUCHER" },
           {
             $set: {
-              logDate: updatedVoucher.voucherDate,
-              paymentMode: updatedVoucher.paymentMode,
-              bank: updatedVoucher.bank,
-              chequeNum: updatedVoucher.chequeNum,
-              payment: updatedVoucher.amount,
-              balance: parseFloat(newBalance).toFixed(2),
-            }
+              logDate: updated.voucherDate,
+              paymentMode: updated.paymentMode,
+              bank: updated.bank,
+              chequeNum: updated.chequeNum,
+              payment: updated.amount,
+            },
           }
         );
 
-        console.log(`Voucher updated: ${updatedVoucher.voucherNum}, balance adjusted, log updated.`);
+        await recalculateLogsAndBalance(updated.partyCompany);
+
+        console.log(`Voucher updated: ${updated.voucherNum}, log updated and balance recalculated.`);
       } catch (error) {
-        console.error(`Error handling update for voucher ${updatedVoucher.voucherNum}: ${error.message}`);
+        console.error(`Error updating voucher ${updated.voucherNum}: ${error.message}`);
       }
     }
   });

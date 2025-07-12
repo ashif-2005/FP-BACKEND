@@ -15,7 +15,7 @@ const getLogs = async (req, res) => {
 
     // Fetch paginated invoices
     const log = await Log.find({ partyCompany: company })
-      // .sort({logDate: 1})
+      .sort({logDate: 1})
       .skip(skip)
       .limit(limit);
 

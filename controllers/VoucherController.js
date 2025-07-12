@@ -23,7 +23,7 @@ const getVouchers = async (req, res) => {
     const total = await Voucher.countDocuments();
 
     // Fetch paginated invoices
-    const voucher = await Voucher.find().skip(skip).limit(limit);
+    const voucher = await Voucher.find().sort({voucherDate: 1}).skip(skip).limit(limit);
 
     res.status(200).json({
       total,

@@ -1,14 +1,15 @@
-const { Voucher } = require("../models/VoucherModel");
-const { Log } = require("../models/LogModel");
-const { Customer } = require("../models/CustomerModel");
+const { PurchaseVoucher } = require("../models/PurchaseVoucher");
+const { PurchaseLog } = require("../models/PurchaseLog");
+const { PurchaseParty } = require("../models/PurchasePartyModel");
 
 const recalculateLogsAndBalance = async (companyName) => {
-  const allLogs = await Log.find({ partyCompany: companyName }).sort({ logDate: 1, _id: 1 });
-  const company = await Customer.findOne({ name: companyName })
-  let balance = company.op_balance;
+  const company = await PurchaseParty.findOne({ name: companyName })
+  const allLogs = await PurchaseLog.find({ partyCompany: companyName }).sort({ logDate: 1, _id: 1 });
+
+  let purchase_balance = company.fp_balance;
   const bulkOps = allLogs.map((log, index) => {
-    if (log.logType === "INVOICE") balance += log.amount;
-    else if (log.logType === "VOUCHER") balance -= log.payment;
+    if (log.logType === "BILL") purchase_balance += log.amount;
+    else if (log.logType === "PAYMENT") purchase_balance -= log.payment;
 
     return {
       updateOne: {
@@ -16,19 +17,19 @@ const recalculateLogsAndBalance = async (companyName) => {
         update: {
           $set: {
             logNum: index + 1,
-            balance: parseFloat(balance.toFixed(2)),
+            balance: parseFloat(purchase_balance.toFixed(2)),
           },
         },
       },
     };
   });
 
-  if (bulkOps.length) await Log.bulkWrite(bulkOps);
-  await Customer.findOneAndUpdate({ name: companyName }, { balance });
+  if (bulkOps.length) await PurchaseLog.bulkWrite(bulkOps);
+  await PurchaseParty.findOneAndUpdate({ name: companyName }, { purchase_balance });
 };
 
-const initVoucherStream = async () => {
-  const changeStream = Voucher.watch(
+const initPurchaseVoucherStream = async () => {
+  const changeStream = PurchaseVoucher.watch(
     [{ $match: { operationType: { $in: ["insert", "delete", "update"] } } }],
     {
       fullDocument: "updateLookup",
@@ -41,11 +42,11 @@ const initVoucherStream = async () => {
       const voucher = change.fullDocument;
       try {
         const log = {
-          logNum: (await Log.countDocuments()) + 1,
+          logNum: (await PurchaseLog.countDocuments()) + 1,
           logDate: voucher.voucherDate,
           partyCompany: voucher.partyCompany || "Unknown Company",
           refNum: voucher.voucherNum,
-          logType: "VOUCHER",
+          logType: "PAYMENT",
           paymentMode: voucher.paymentMode,
           bank: voucher.bank,
           chequeNum: voucher.chequeNum,
@@ -54,7 +55,7 @@ const initVoucherStream = async () => {
           balance: 0,
         };
 
-        await Log.create(log);
+        await PurchaseLog.create(log);
         await recalculateLogsAndBalance(voucher.partyCompany);
 
         console.log(`Voucher inserted: ${voucher.voucherNum}, log added and balance recalculated.`);
@@ -68,7 +69,7 @@ const initVoucherStream = async () => {
       if (!voucher) return console.warn("Missing pre-image for delete.");
 
       try {
-        await Log.deleteOne({ refNum: voucher.voucherNum, logType: "VOUCHER" });
+        await PurchaseLog.deleteOne({ refNum: voucher.voucherNum, logType: "PAYMENT" });
         await recalculateLogsAndBalance(voucher.partyCompany);
 
         console.log(`Voucher deleted: ${voucher.voucherNum}, log removed and balance recalculated.`);
@@ -83,8 +84,8 @@ const initVoucherStream = async () => {
       if (!original) return console.warn("Missing pre-image for update.");
 
       try {
-        await Log.findOneAndUpdate(
-          { refNum: updated.voucherNum, logType: "VOUCHER" },
+        await PurchaseLog.findOneAndUpdate(
+          { refNum: updated.voucherNum, logType: "PAYMENT" },
           {
             $set: {
               logDate: updated.voucherDate,
@@ -114,4 +115,4 @@ const initVoucherStream = async () => {
   });
 };
 
-module.exports = initVoucherStream;
+module.exports = initPurchaseVoucherStream;

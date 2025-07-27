@@ -10,9 +10,15 @@ const InvoiceRout = require("./routes/InvoiceRout");
 const UserRout = require("./routes/UserRout");
 const VoucherRout = require("./routes/VoucherRout");
 const LogRout = require("./routes/LogRout");
+const PurchaseInvoice = require('./routes/PurchaseInvoiceRout')
+const PurchaseVoucher = require('./routes/PurchaseVoucherRout')
+const PurchaseLog = require('./routes/PurchaseLogRoute')
+const PurchaseParty = require('./routes/PurchasePartyRout')
 const initInvoiceStream = require('./config/InvoiceStream')
 const initVoucherStream = require('./config/VoucherStream')
-
+const initPurchaseInvoiceStream = require('./config/PurchaseInvoiceStream')
+const initPurchaseVoucherStream = require('./config/PurchaseVoucherStream')
+ 
 const app = express();
 app.use(parser.json());
 app.use(cors());
@@ -21,14 +27,20 @@ dotenv.config("./env");
 
 app.use("/user", UserRout);
 app.use("/customer", CustomerRout);
+app.use("/purchase-party", PurchaseParty);
 app.use("/item", ItemRout);
 app.use("/dc", DCRout);
 app.use("/invoice", InvoiceRout);
 app.use("/voucher", VoucherRout);
 app.use("/log", LogRout);
+app.use("/purchase-invoice", PurchaseInvoice)
+app.use("/purchase-voucher", PurchaseVoucher)
+app.use("/purchase-log", PurchaseLog)
 
 initInvoiceStream();
 initVoucherStream();
+initPurchaseInvoiceStream();
+initPurchaseVoucherStream();
 
 app.get("/test", (req, res) => {
   try {

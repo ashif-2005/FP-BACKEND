@@ -1,6 +1,6 @@
-const { Invoice } = require("../models/InvoiceModel");
-const { Log } = require("../models/LogModel");
-const { Customer } = require("../models/CustomerModel");
+const { PurchaseInvoice } = require("../models/PurchaseInvoiceModel");
+const { PurchaseLog } = require("../models/PurchaseLog");
+const { PurchaseParty } = require("../models/PurchasePartyModel");
 
 const getTaxAndTotal = (inv) => {
   const total = inv.items
@@ -26,16 +26,16 @@ const adjustToNearestWhole = (amount) => {
 };
 
 const recalculateLogsAndBalance = async (companyName) => {
-  const company = await Customer.findOne({ name: companyName });
-  const allLogs = await Log.find({ partyCompany: companyName }).sort({
+  const company = await PurchaseParty.findOne({name : companyName})
+  const allLogs = await PurchaseLog.find({ partyCompany: companyName }).sort({
     logDate: 1,
     _id: 1,
   });
 
-  let balance = company.op_balance;
+  let purchase_balance = company.fp_balance;
   const bulkOps = allLogs.map((log, index) => {
-    if (log.logType === "INVOICE") balance += log.amount;
-    else if (log.logType === "VOUCHER") balance -= log.payment;
+    if (log.logType === "BILL") purchase_balance += log.amount;
+    else if (log.logType === "PAYMENT") purchase_balance -= log.payment;
 
     return {
       updateOne: {
@@ -43,19 +43,22 @@ const recalculateLogsAndBalance = async (companyName) => {
         update: {
           $set: {
             logNum: index + 1,
-            balance: parseFloat(balance.toFixed(2)),
+            balance: parseFloat(purchase_balance.toFixed(2)),
           },
         },
       },
     };
   });
 
-  if (bulkOps.length) await Log.bulkWrite(bulkOps);
-  await Customer.findOneAndUpdate({ name: companyName }, { balance });
+  if (bulkOps.length) await PurchaseLog.bulkWrite(bulkOps);
+  await PurchaseParty.findOneAndUpdate(
+    { name: companyName },
+    { purchase_balance }
+  );
 };
 
-const initInvoiceStream = () => {
-  const changeStream = Invoice.watch(
+const initPurchaseInvoiceStream = () => {
+  const changeStream = PurchaseInvoice.watch(
     [{ $match: { operationType: { $in: ["insert", "delete", "update"] } } }],
     {
       fullDocument: "updateLookup",
@@ -71,11 +74,11 @@ const initInvoiceStream = () => {
           getTaxAndTotal(inv)
         ).roundedTotal;
         const log = {
-          logNum: (await Log.countDocuments()) + 1,
+          logNum: (await PurchaseLog.countDocuments()) + 1,
           logDate: inv.invoiceDate,
           partyCompany: inv.toCompany || "Unknown Company",
           refNum: inv.invoiceNumber,
-          logType: "INVOICE",
+          logType: "BILL",
           paymentMode: "NA",
           bank: null,
           chequeNum: null,
@@ -84,7 +87,7 @@ const initInvoiceStream = () => {
           balance: 0,
         };
 
-        await Log.create(log);
+        await PurchaseLog.create(log);
         await recalculateLogsAndBalance(inv.toCompany);
 
         console.log(
@@ -100,10 +103,11 @@ const initInvoiceStream = () => {
     if (change.operationType === "delete") {
       const invoice = change.fullDocumentBeforeChange;
       if (!invoice) return console.warn("Missing pre-image for delete.");
+
       try {
-        await Log.deleteOne({
+        await PurchaseLog.deleteOne({
           refNum: invoice.invoiceNumber,
-          logType: "INVOICE",
+          logType: "BILL",
         });
         await recalculateLogsAndBalance(invoice.toCompany);
 
@@ -127,4 +131,4 @@ const initInvoiceStream = () => {
   });
 };
 
-module.exports = initInvoiceStream;
+module.exports = initPurchaseInvoiceStream;

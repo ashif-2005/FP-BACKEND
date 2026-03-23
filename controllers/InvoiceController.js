@@ -48,11 +48,30 @@ const getInvoices = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+
+    let startDate;
+
+    if (currentMonth < 3) {
+      startDate = new Date(currentYear - 1, 3, 1);
+    } else {
+      startDate = new Date(currentYear, 3, 1);
+    }
+
+    const filter = {
+      invoiceDate: {
+        $gte: startDate,
+        $lte: today
+      }
+    };
+
     // Get total count for metadata
-    const total = await Invoice.countDocuments();
+    const total = await Invoice.countDocuments(filter);
 
     // Fetch paginated invoices
-    const invoices = await Invoice.find().skip(skip).limit(limit);
+    const invoices = await Invoice.find(filter).skip(skip).limit(limit);
 
     res.status(200).json({
       total,

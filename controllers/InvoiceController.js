@@ -3,7 +3,25 @@ const { Invoice } = require("../models/InvoiceModel");
 // Get all invoices
 const getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find();
+    const year = parseInt(req.query.year);
+
+    if (!year) {
+      return res.status(400).json({
+        message: "Year is required",
+      });
+    }
+
+    const startDate = new Date(year, 3, 1);
+
+    const endDate = new Date(year + 1, 2, 31, 23, 59, 59, 999);
+
+    const filter = {
+      invoiceDate: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    };
+    const invoices = await Invoice.find(filter);
     res.status(200).json(invoices);
   } catch (error) {
     res.status(500).json({ message: "Error fetching invoices", error });
@@ -42,35 +60,34 @@ const getInvoiceByToCompany = async (req, res) => {
 
 const getInvoices = async (req, res) => {
   try {
-    // Convert query params to numbers, set default values if not provided
+    // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-
     const skip = (page - 1) * limit;
 
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
+    const year = parseInt(req.query.year);
 
-    let startDate;
-
-    if (currentMonth < 3) {
-      startDate = new Date(currentYear - 1, 3, 1);
-    } else {
-      startDate = new Date(currentYear, 3, 1);
+    if (!year) {
+      return res.status(400).json({
+        message: "Year is required",
+      });
     }
+
+    const startDate = new Date(year, 3, 1);
+
+    const endDate = new Date(year + 1, 2, 31, 23, 59, 59, 999);
 
     const filter = {
       invoiceDate: {
         $gte: startDate,
-        $lte: today
-      }
+        $lte: endDate,
+      },
     };
 
-    // Get total count for metadata
+    // Total count
     const total = await Invoice.countDocuments(filter);
 
-    // Fetch paginated invoices
+    // Fetch invoices
     const invoices = await Invoice.find(filter).skip(skip).limit(limit);
 
     res.status(200).json({
@@ -78,10 +95,16 @@ const getInvoices = async (req, res) => {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      financialYear: `${year}-${year + 1}`,
+      startDate,
+      endDate,
       data: invoices,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching invoices", error });
+    res.status(500).json({
+      message: "Error fetching invoices",
+      error: error.message,
+    });
   }
 };
 
